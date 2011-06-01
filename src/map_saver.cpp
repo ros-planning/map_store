@@ -46,6 +46,8 @@ service calls:
 #include <string>
 #include <sstream>
 
+#include <uuid/uuid.h>
+
 namespace wh=warehouse;
 
 std::string map_name;
@@ -58,9 +60,17 @@ void onMapReceived(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
 {
   ROS_INFO("received map");
 
-  id_of_most_recent_map =
-    map_collection.publish(*map_msg,
-                           (std::string) wh::MetadataString().add("session_id", session_id).add("name", map_name));
+  uuid_t uuid;
+  uuid_generate(uuid);
+  char uuid_string[37]; // UUID prints into 36 bytes + NULL terminator
+  uuid_unparse_lower(uuid, uuid_string);
+
+  std::string metadata = wh::MetadataString()
+    .add("uuid", std::string(uuid_string))
+    .add("session_id", session_id)
+    .add("name", map_name);
+
+  id_of_most_recent_map = map_collection.publish(*map_msg, metadata);
 
   ROS_INFO("saved map");
 }

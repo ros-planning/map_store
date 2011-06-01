@@ -1,0 +1,11 @@
+\.cmake$
+^build/
+\.pyc$
+^msg_gen/
+^src/map_store/__init__\.py
+^src/.*/msg/_.*\.py
+^src/.*/srv/_.*\.py
+^msg/lisp/
+^srv_gen/
+^bin/
+~$

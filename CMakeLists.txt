@@ -28,7 +28,7 @@ rosbuild_gensrv()
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_executable(map_saver src/map_saver.cpp)
-target_link_libraries(map_saver warehouse_client)
+target_link_libraries(map_saver warehouse_client uuid)
 
 rosbuild_add_executable(map_loader src/map_loader.cpp)
-target_link_libraries(map_loader warehouse_client)
+target_link_libraries(map_loader warehouse_client uuid)
