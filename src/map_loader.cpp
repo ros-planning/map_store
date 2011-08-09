@@ -48,6 +48,7 @@ service calls:
 #include <map_store/ListLastMaps.h>
 #include <map_store/PublishMap.h>
 #include <map_store/MapListEntry.h>
+#include <nav_msgs/GetMap.h>
 
 #include <string>
 #include <sstream>
@@ -56,6 +57,7 @@ namespace mr=mongo_ros;
 
 mr::MessageCollection<nav_msgs::OccupancyGrid> *map_collection;
 ros::Publisher map_publisher;
+std::string last_map;
 
 typedef std::vector<mr::MessageWithMetadata<nav_msgs::OccupancyGrid>::ConstPtr> MapVector;
 
@@ -104,33 +106,61 @@ bool listLastMaps(map_store::ListLastMaps::Request &request,
   return true;
 }
 
+bool lookupMap(std::string name, nav_msgs::OccupancyGridConstPtr &ptr) {
+  MapVector matching_maps;
+  try {
+    matching_maps = map_collection->pullAllResults(mr::Query("uuid", name), false );
+  } catch(const std::exception &e) {
+    ROS_ERROR("Error during query: %s", e.what());
+    return false;
+  }
+
+  if( matching_maps.size() != 1 ) {
+    ROS_ERROR("publishMap() found %d matching maps instead of 1.  Failing.", (int) matching_maps.size());
+    return false;
+  }
+  ptr = nav_msgs::OccupancyGridConstPtr( matching_maps[0] );
+  return true;
+}
+
 bool publishMap(map_store::PublishMap::Request &request,
                 map_store::PublishMap::Response &response)
 {
   ROS_DEBUG("publishMap() service call");
   ROS_DEBUG("Searching for '%s'", request.map_id.c_str());
 
-
-  MapVector matching_maps;
-  try {
-    matching_maps = map_collection->pullAllResults(mr::Query("uuid", request.map_id), false );
-  } catch(const std::exception &e) {
-    ROS_ERROR("Error during query: %s", e.what());
-  }
-
-  if( matching_maps.size() != 1 ) {
-    ROS_ERROR("publishMap() found %d matching maps instead of 1.  Failing.", (int) matching_maps.size());
-  }
-  else
+  last_map = request.map_id;
+  nav_msgs::OccupancyGridConstPtr map;
+  if (lookupMap(request.map_id, map))
   {
     try {
-      nav_msgs::OccupancyGridConstPtr map( matching_maps[0] );
-      map_publisher.publish( map );
+      map_publisher.publish(map);
     } catch(...) {
       ROS_ERROR("Error publishing map");
     }
   }
+  else
+  {
+    return false;
+  }
 
+  return true;
+}
+
+bool dynamicMap(nav_msgs::GetMap::Request &request,
+		nav_msgs::GetMap::Response &response) {
+  if (last_map == "") {
+    return false;
+  }
+  nav_msgs::OccupancyGridConstPtr map;
+  if (lookupMap(last_map, map))
+  {
+    response.map = *map;
+  }
+  else 
+  {
+    return false;
+  }  
   return true;
 }
 
@@ -139,10 +169,12 @@ int main (int argc, char** argv)
   ros::init(argc, argv, "map_loader");
   ros::NodeHandle nh;
 
-  map_collection = new mr::MessageCollection<nav_msgs::OccupancyGrid>("map_store", "maps", "uuid");
+  map_collection = new mr::MessageCollection<nav_msgs::OccupancyGrid>("map_store", "maps");
+  map_collection->ensureIndex("uuid");
 
   ros::ServiceServer list_last_maps_service = nh.advertiseService("list_last_maps", listLastMaps);
   ros::ServiceServer publish_map_service = nh.advertiseService("publish_map", publishMap);
+  ros::ServiceServer dynamic_map = nh.advertiseService("dynamic_map", dynamicMap);
 
   map_publisher = nh.advertise<nav_msgs::OccupancyGrid>("/map", 1);
 
