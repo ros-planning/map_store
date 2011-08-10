@@ -41,6 +41,7 @@ service calls:
 #include <mongo_ros/message_collection.h>
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <nav_msgs/GetMap.h>
 #include <map_store/NameLatestMap.h>
 
 #include <string>
@@ -55,6 +56,7 @@ std::string id_of_most_recent_map;
 std::string session_id;
 mr::MessageCollection<nav_msgs::OccupancyGrid> *map_collection;
 ros::ServiceClient add_metadata_service_client;
+ros::ServiceClient dynamic_map_service_client;
 
 std::string uuidGenerate() {
   uuid_t uuid;
@@ -84,40 +86,21 @@ void onMapReceived(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
 bool nameLatestMap(map_store::NameLatestMap::Request &req,
                    map_store::NameLatestMap::Response &res)
 {
-  map_name = req.map_name;
-  std::vector<mr::MessageWithMetadata<nav_msgs::OccupancyGrid>::ConstPtr> 
-    all_maps = map_collection->pullAllResults( mr::Query("session_id", session_id), false, "creation_time", false );
-
-  ROS_DEBUG("%u maps in current session", (unsigned int)all_maps.size());
-  
-  // Loop over all_maps to get the first of each session.
-  std::vector<mr::MessageWithMetadata<nav_msgs::OccupancyGrid>::ConstPtr>::const_iterator map_iter = all_maps.begin();
-  if (map_iter == all_maps.end()) {
-    ROS_ERROR("No maps to name");
+  nav_msgs::GetMap srv;
+  if (!dynamic_map_service_client.call(srv)) {
+    ROS_ERROR("Dynamic map getter service call failed");
     return false;
   }
-  ROS_DEBUG("nameLastestMaps() reading a map");
-
-  if ((*map_iter)->lookupString("name") == req.map_name) {
-    ROS_DEBUG("Already named properly");
-    return true;
-  }
-
-  //For now, this creates a new map of a given name by copying the old one.
-  //It is a bit of a hack that will last until the ablity to update metadata
-  //is implemented for the c++ client. See ticket 6 on the warehouse trac.
-  //Ideally, we'd search for id_of_most_recent_map and set it to map_name
-  std::string session_id = (*map_iter)->lookupString("session_id");
+  nav_msgs::OccupancyGridConstPtr map( &srv.response.map);
+  
   std::string uuid_string = uuidGenerate();
   mr::Metadata metadata
     = mr::Metadata("uuid", uuid_string,
                    "session_id", session_id,
-		   "name", map_name);
+		   "name", req.map_name);
 
   id_of_most_recent_map = uuid_string;
-  nav_msgs::OccupancyGridConstPtr map( all_maps[0] );
-  ROS_DEBUG("Copy from %s", all_maps[0]->metadata.toString().c_str());
-  ROS_DEBUG("Save map %d by %d @ %f as %s", map->info.width, map->info.height, map->info.resolution, map_name.c_str());
+  ROS_DEBUG("Save map %d by %d @ %f as %s", map->info.width, map->info.height, map->info.resolution, req.map_name.c_str());
   map_collection->insert(*map, metadata);
   
   ROS_DEBUG("nameLastestMaps() service call done");
@@ -142,6 +125,7 @@ int main (int argc, char** argv)
   ros::Subscriber map_subscriber = nh.subscribe("map", 1, onMapReceived);
 
   ros::ServiceServer name_latest_map_service = nh.advertiseService("name_latest_map", nameLatestMap);
+  dynamic_map_service_client = nh.serviceClient<nav_msgs::GetMap>("dynamic_map");
 
   ROS_DEBUG("spinning.");
 
