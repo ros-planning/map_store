@@ -47,6 +47,8 @@ service calls:
 #include <nav_msgs/OccupancyGrid.h>
 #include <map_store/ListLastMaps.h>
 #include <map_store/PublishMap.h>
+#include <map_store/DeleteMap.h>
+#include <map_store/RenameMap.h>
 #include <map_store/MapListEntry.h>
 #include <nav_msgs/GetMap.h>
 
@@ -147,6 +149,20 @@ bool publishMap(map_store::PublishMap::Request &request,
   return true;
 }
 
+bool deleteMap(map_store::DeleteMap::Request &request,
+	       map_store::DeleteMap::Response &response)
+{
+  return map_collection->removeMessages(mr::Query("uuid", request.map_id)) == 1;
+}
+
+bool renameMap(map_store::RenameMap::Request &request,
+               map_store::RenameMap::Response &response)
+{
+  map_collection->modifyMetadata(mr::Query("uuid", request.map_id), mr::Metadata("name", request.new_name));
+  return true;
+}
+
+
 bool dynamicMap(nav_msgs::GetMap::Request &request,
 		nav_msgs::GetMap::Response &response) {
   if (last_map == "") {
@@ -174,6 +190,8 @@ int main (int argc, char** argv)
 
   ros::ServiceServer list_last_maps_service = nh.advertiseService("list_last_maps", listLastMaps);
   ros::ServiceServer publish_map_service = nh.advertiseService("publish_map", publishMap);
+  ros::ServiceServer delete_map_service = nh.advertiseService("delete_map", deleteMap);
+  ros::ServiceServer rename_map_service = nh.advertiseService("rename_map", renameMap);
   ros::ServiceServer dynamic_map = nh.advertiseService("dynamic_map", dynamicMap);
 
   map_publisher = nh.advertise<nav_msgs::OccupancyGrid>("/map", 1);
