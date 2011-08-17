@@ -51,8 +51,6 @@ service calls:
 
 namespace mr=mongo_ros;
 
-std::string map_name;
-std::string id_of_most_recent_map;
 std::string session_id;
 mr::MessageCollection<nav_msgs::OccupancyGrid> *map_collection;
 ros::ServiceClient add_metadata_service_client;
@@ -73,11 +71,7 @@ void onMapReceived(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
   mr::Metadata metadata
     = mr::Metadata("uuid", uuid_string,
 		   "session_id", session_id);
-  if (map_name != "") {
-    metadata.append("name", map_name);
-  }
 
-  id_of_most_recent_map = uuid_string;
   map_collection->insert(*map_msg, metadata);
 
   ROS_DEBUG("saved map");
@@ -98,7 +92,6 @@ bool nameLatestMap(map_store::NameLatestMap::Request &req,
                    "session_id", session_id,
 		   "name", req.map_name);
 
-  id_of_most_recent_map = uuid_string;
   ROS_DEBUG("Save map %d by %d @ %f as %s", srv.response.map.info.width, 
             srv.response.map.info.height, srv.response.map.info.resolution, req.map_name.c_str());
   map_collection->insert(srv.response.map, metadata);
@@ -111,9 +104,6 @@ int main (int argc, char** argv)
 {
   ros::init(argc, argv, "map_saver");
   ros::NodeHandle nh;
-
-  map_name = "";
-  id_of_most_recent_map = "";
 
   // Use the current ROS time in seconds as the session id.
   char buff[256]; 
