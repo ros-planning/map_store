@@ -91,7 +91,6 @@ bool nameLatestMap(map_store::NameLatestMap::Request &req,
     ROS_ERROR("Dynamic map getter service call failed");
     return false;
   }
-  nav_msgs::OccupancyGridConstPtr map( &srv.response.map);
   
   std::string uuid_string = uuidGenerate();
   mr::Metadata metadata
@@ -100,8 +99,9 @@ bool nameLatestMap(map_store::NameLatestMap::Request &req,
 		   "name", req.map_name);
 
   id_of_most_recent_map = uuid_string;
-  ROS_DEBUG("Save map %d by %d @ %f as %s", map->info.width, map->info.height, map->info.resolution, req.map_name.c_str());
-  map_collection->insert(*map, metadata);
+  ROS_DEBUG("Save map %d by %d @ %f as %s", srv.response.map.info.width, 
+            srv.response.map.info.height, srv.response.map.info.resolution, req.map_name.c_str());
+  map_collection->insert(srv.response.map, metadata);
   
   ROS_DEBUG("nameLastestMaps() service call done");
   return true;
