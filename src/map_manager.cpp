@@ -71,37 +71,22 @@ bool listLastMaps(map_store::ListLastMaps::Request &request,
   MapVector all_maps;
   all_maps = map_collection->pullAllResults( mr::Query(), true, "creation_time", false );
 
-  // Keep a std::map of session IDs to remember which sessions we have seen before.
-  std::map<std::string, bool> sessions_seen;
-
   // Loop over all_maps to get the first of each session.
   for(MapVector::const_iterator map_iter = all_maps.begin(); map_iter != all_maps.end(); map_iter++)
   {
     ROS_DEBUG("listLastMaps() reading a map");
 
-    std::string session_id = (*map_iter)->lookupString("session_id");
-    // If we haven't seen this session ID before,
-    ROS_DEBUG("Session: %s", session_id.c_str());
-    if( sessions_seen.find( session_id ) == sessions_seen.end()
-	|| (*map_iter)->lookupString("name") != "" || true)
-    {
-      ROS_DEBUG("listLastMaps() adding a map to the result list.");
-      ROS_DEBUG("listLastMaps() metadata is: '%s'", (*map_iter)->metadata.toString().c_str());
-      
-      // Mark that we've seen this session.
-      sessions_seen[ session_id ] = true;
-      
-      // Add the map info to our result list.
-      map_store::MapListEntry new_entry;
-      new_entry.name = (*map_iter)->lookupString("name");
-      new_entry.date = (int64_t)(*map_iter)->lookupDouble("creation_time");
-      new_entry.session_id = session_id;
-      new_entry.map_id = (*map_iter)->lookupString("uuid");
-      
-      response.map_list.push_back(new_entry);
-    } else {
-      ROS_WARN("Duplicate session map rejected: %s", (*map_iter)->lookupString("name").c_str());
-    }
+    ROS_DEBUG("listLastMaps() adding a map to the result list.");
+    ROS_DEBUG("listLastMaps() metadata is: '%s'", (*map_iter)->metadata.toString().c_str());
+    
+    // Add the map info to our result list.
+    map_store::MapListEntry new_entry;
+    new_entry.name = (*map_iter)->lookupString("name");
+    new_entry.date = (int64_t)(*map_iter)->lookupDouble("creation_time");
+    new_entry.session_id = (*map_iter)->lookupString("session_id");
+    new_entry.map_id = (*map_iter)->lookupString("uuid");
+    
+    response.map_list.push_back(new_entry);
   }
 
   ROS_DEBUG("listLastMaps() service call done");
@@ -182,7 +167,7 @@ bool dynamicMap(nav_msgs::GetMap::Request &request,
 
 int main (int argc, char** argv)
 {
-  ros::init(argc, argv, "map_loader");
+  ros::init(argc, argv, "map_manager");
   ros::NodeHandle nh;
 
   map_collection = new mr::MessageCollection<nav_msgs::OccupancyGrid>("map_store", "maps");

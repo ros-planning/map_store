@@ -30,5 +30,5 @@ rosbuild_gensrv()
 rosbuild_add_executable(map_saver src/map_saver.cpp)
 target_link_libraries(map_saver uuid)
 
-rosbuild_add_executable(map_loader src/map_loader.cpp)
-target_link_libraries(map_loader uuid)
+rosbuild_add_executable(map_manager src/map_manager.cpp)
+target_link_libraries(map_manager uuid)
