@@ -1,0 +1,12 @@
+<stack>
+  <description brief="map_store">map_store</description>
+  <author>Dave Hershburger</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/map_store</url>
+  <depend stack="common_msgs" /> <!-- nav_msgs -->
+  <depend stack="ros" />
+  <depend stack="ros_comm" /> <!-- roscpp -->
+  <depend stack="warehouse" /> <!-- mongo_ros -->
+
+</stack>
