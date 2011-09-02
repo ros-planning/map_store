@@ -57,12 +57,12 @@ class TestMapStore(unittest.TestCase):
         map_pub = rospy.Publisher('/map', OccupancyGrid)
         test_map_sub = rospy.Subscriber('/test_map', OccupancyGrid, self.on_map)
         dynamic_map = rospy.Service('dynamic_map', GetMap, lambda x: GetMapResponse(map=test_map_2))
-        print "Wait for /list_last_maps"
-        rospy.wait_for_service("/list_last_maps")
-        list_last_maps = rospy.ServiceProxy('/list_last_maps', ListLastMaps)
+        print "Wait for /list_maps"
+        rospy.wait_for_service("/list_maps")
+        list_maps = rospy.ServiceProxy('/list_maps', ListMaps)
         print "Wait for /name_latest_map"
-        rospy.wait_for_service("/name_latest_map")
-        name_latest_map = rospy.ServiceProxy('/name_latest_map', NameLatestMap)
+        rospy.wait_for_service("/save_map")
+        name_latest_map = rospy.ServiceProxy('/save_map', SaveMap)
         print "Wait for /delete_map"
         rospy.wait_for_service("/delete_map")
         delete_map = rospy.ServiceProxy('/delete_map', DeleteMap)
@@ -82,7 +82,7 @@ class TestMapStore(unittest.TestCase):
 
         #Get the initial list of all maps
         initial_map_list = []
-        for m in list_last_maps().map_list:
+        for m in list_maps().map_list:
             initial_map_list.append(m.map_id)
         print "Initial maps:", initial_map_list
 
@@ -93,7 +93,7 @@ class TestMapStore(unittest.TestCase):
 
         #Get the first map
         map_id_1 = None
-        for i in list_last_maps().map_list:
+        for i in list_maps().map_list:
             if not i.map_id in initial_map_list:
                 self.assertEquals(map_id_1, None, "Two or more maps from /map topic")
                 map_id_1 = i.map_id
@@ -107,7 +107,7 @@ class TestMapStore(unittest.TestCase):
 
         #Get the second map
         map_id_2 = None
-        for i in list_last_maps().map_list:
+        for i in list_maps().map_list:
             if not i.map_id in initial_map_list and i.map_id != map_id_1:
                 self.assertEquals(map_id_2, None, "Two or more maps from dynamic_map")
                 self.assertEquals(i.name, saved_map_name, \
@@ -123,7 +123,7 @@ class TestMapStore(unittest.TestCase):
         rospy.sleep(1.0)
 
         #Ensure the renaming happened
-        for i in list_last_maps().map_list:
+        for i in list_maps().map_list:
             if i.map_id == map_id_1:
                 self.assertEquals(i.name, topic_map_name, \
                                       "Saved map has the wrong name: %s instead of %s"%(i.name, topic_map_name))
@@ -154,7 +154,7 @@ class TestMapStore(unittest.TestCase):
         
         #Check that they are gone
         print "Ensuring that the maps are gone"
-        for i in list_last_maps().map_list:
+        for i in list_maps().map_list:
             self.assertNotEquals(i.map_id, map_id_1, "The /map topic map could not be deleted")
             self.assertNotEquals(i.map_id, map_id_2, "The dynamic_map map could not be deleted")
 

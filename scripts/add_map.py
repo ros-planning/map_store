@@ -15,15 +15,15 @@ except:
 
 print "Waiting for /dynamic_map..."
 rospy.wait_for_service('/dynamic_map')
-print "Waiting for /name_latest_map..."
-rospy.wait_for_service('/name_latest_map')
-print "Waiting for /list_last_maps..."
-rospy.wait_for_service('/list_last_maps')
+print "Waiting for /save_map..."
+rospy.wait_for_service('/save_map')
+print "Waiting for /list_maps..."
+rospy.wait_for_service('/list_maps')
 print "Waiting for /delete_map..."
 rospy.wait_for_service('/delete_map')
 
 print "Checking for duplicates..."
-list_last_maps = rospy.ServiceProxy('/list_last_maps', map_store.srv.ListLastMaps)
+list_last_maps = rospy.ServiceProxy('/list_maps', map_store.srv.ListMaps)
 delete_map = rospy.ServiceProxy('/delete_map', map_store.srv.DeleteMap)
 maps = []
 try:
@@ -38,7 +38,7 @@ for i in maps:
         delete_map(i.map_id)
 
 print "Starting service..."
-save_map = rospy.ServiceProxy('/name_latest_map', map_store.srv.NameLatestMap)
+save_map = rospy.ServiceProxy('/save_map', map_store.srv.SaveMap)
 print "Saving map as", save_as
 save_map(save_as)
 print "Done"

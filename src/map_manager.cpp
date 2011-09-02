@@ -34,18 +34,24 @@ behavior:
  - spins, handling service calls
 
 service calls:
- - list_last_map_of_every_session() returns list of map metadata: {id, name, timestamp, maybe thumbnail}
+ - list_maps() returns list of map metadata: {id, name, timestamp, maybe thumbnail}
    - query for all maps.
-   - return list of latest metadata for each session id. (which may or may not have a name)
+ - delete_map(map id) returns void
+   - Deletes the given map
+ - rename_map[(map id, name) returns void
+   - renames a given map
  - publish_map(map id) returns void
    - queries warehouse for map of given id
-   - listens for resulting map and republishes it (?) on appropriate topic name (like "/map")
+   - publishes the map on /map
+   - sets dynamic map up to load it\
+ - dynamic_map() returns nav_msgs/OccupancyGrid
+   - returns the dynamic map
  */
 
 #include <mongo_ros/message_collection.h>
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <map_store/ListLastMaps.h>
+#include <map_store/ListMaps.h>
 #include <map_store/PublishMap.h>
 #include <map_store/DeleteMap.h>
 #include <map_store/RenameMap.h>
@@ -63,10 +69,10 @@ std::string last_map;
 
 typedef std::vector<mr::MessageWithMetadata<nav_msgs::OccupancyGrid>::ConstPtr> MapVector;
 
-bool listLastMaps(map_store::ListLastMaps::Request &request,
-                  map_store::ListLastMaps::Response &response)
+bool listMaps(map_store::ListMaps::Request &request,
+                  map_store::ListMaps::Response &response)
 {
-  ROS_DEBUG("listLastMaps() service call");
+  ROS_DEBUG("listMaps() service call");
 
   MapVector all_maps;
   all_maps = map_collection->pullAllResults( mr::Query(), true, "creation_time", false );
@@ -74,10 +80,10 @@ bool listLastMaps(map_store::ListLastMaps::Request &request,
   // Loop over all_maps to get the first of each session.
   for(MapVector::const_iterator map_iter = all_maps.begin(); map_iter != all_maps.end(); map_iter++)
   {
-    ROS_DEBUG("listLastMaps() reading a map");
+    ROS_DEBUG("listMaps() reading a map");
 
-    ROS_DEBUG("listLastMaps() adding a map to the result list.");
-    ROS_DEBUG("listLastMaps() metadata is: '%s'", (*map_iter)->metadata.toString().c_str());
+    ROS_DEBUG("listMaps() adding a map to the result list.");
+    ROS_DEBUG("listMaps() metadata is: '%s'", (*map_iter)->metadata.toString().c_str());
     
     // Add the map info to our result list.
     map_store::MapListEntry new_entry;
@@ -89,7 +95,7 @@ bool listLastMaps(map_store::ListLastMaps::Request &request,
     response.map_list.push_back(new_entry);
   }
 
-  ROS_DEBUG("listLastMaps() service call done");
+  ROS_DEBUG("listMaps() service call done");
   return true;
 }
 
@@ -173,7 +179,7 @@ int main (int argc, char** argv)
   map_collection = new mr::MessageCollection<nav_msgs::OccupancyGrid>("map_store", "maps");
   map_collection->ensureIndex("uuid");
 
-  ros::ServiceServer list_last_maps_service = nh.advertiseService("list_last_maps", listLastMaps);
+  ros::ServiceServer list_maps_service = nh.advertiseService("list_maps", listMaps);
   ros::ServiceServer publish_map_service = nh.advertiseService("publish_map", publishMap);
   ros::ServiceServer delete_map_service = nh.advertiseService("delete_map", deleteMap);
   ros::ServiceServer rename_map_service = nh.advertiseService("rename_map", renameMap);

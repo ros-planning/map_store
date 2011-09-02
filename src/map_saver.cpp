@@ -33,16 +33,15 @@ behavior:
    - id_of_most_recent_map = Collection.publish(map, {session ID, map name})
 
 service calls:
- - name latest map (map name) returns void
-   - add_metadata() service call to set the map name of the map with id_of_most_recent_map.
-   - store map name in variable.
+ - save_map(map name) returns void
+   - save the map returned by dynamic_map as map name
  */
 
 #include <mongo_ros/message_collection.h>
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GetMap.h>
-#include <map_store/NameLatestMap.h>
+#include <map_store/SaveMap.h>
 
 #include <string>
 #include <sstream>
@@ -77,8 +76,8 @@ void onMapReceived(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
   ROS_DEBUG("saved map");
 }
 
-bool nameLatestMap(map_store::NameLatestMap::Request &req,
-                   map_store::NameLatestMap::Response &res)
+bool saveMap(map_store::SaveMap::Request &req,
+             map_store::SaveMap::Response &res)
 {
   nav_msgs::GetMap srv;
   if (!dynamic_map_service_client.call(srv)) {
@@ -114,7 +113,7 @@ int main (int argc, char** argv)
 
   ros::Subscriber map_subscriber = nh.subscribe("map", 1, onMapReceived);
 
-  ros::ServiceServer name_latest_map_service = nh.advertiseService("name_latest_map", nameLatestMap);
+  ros::ServiceServer name_latest_map_service = nh.advertiseService("save_map", saveMap);
   dynamic_map_service_client = nh.serviceClient<nav_msgs::GetMap>("dynamic_map");
 
   ROS_DEBUG("spinning.");
