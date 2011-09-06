@@ -7,6 +7,6 @@
   <depend stack="common_msgs" /> <!-- nav_msgs -->
   <depend stack="ros" />
   <depend stack="ros_comm" /> <!-- roscpp -->
-  <depend stack="warehouse" /> <!-- mongo_ros -->
+  <depend stack="warehousewg" /> <!-- mongo_ros -->
 
 </stack>
