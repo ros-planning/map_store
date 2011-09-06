@@ -101,14 +101,16 @@ bool listMaps(map_store::ListMaps::Request &request,
 
 bool lookupMap(std::string name, nav_msgs::OccupancyGridConstPtr &ptr) {
   MapVector matching_maps;
-  try {
+  try
+  {
     matching_maps = map_collection->pullAllResults(mr::Query("uuid", name), false );
   } catch(const std::exception &e) {
     ROS_ERROR("Error during query: %s", e.what());
     return false;
   }
 
-  if( matching_maps.size() != 1 ) {
+  if (matching_maps.size() != 1)
+  {
     ROS_ERROR("publishMap() found %d matching maps instead of 1.  Failing.", (int) matching_maps.size());
     return false;
   }
@@ -123,6 +125,8 @@ bool publishMap(map_store::PublishMap::Request &request,
   ROS_DEBUG("Searching for '%s'", request.map_id.c_str());
 
   last_map = request.map_id;
+  ros::NodeHandle nh;
+  nh.setParam("last_map_id", last_map);
   nav_msgs::OccupancyGridConstPtr map;
   if (lookupMap(request.map_id, map))
   {
@@ -143,6 +147,19 @@ bool publishMap(map_store::PublishMap::Request &request,
 bool deleteMap(map_store::DeleteMap::Request &request,
 	       map_store::DeleteMap::Response &response)
 {
+  ros::NodeHandle nh;
+  std::string param;
+  if (nh.getParam("last_map_id", param))
+  {
+    if (param == request.map_id)
+    {
+      nh.deleteParam("last_map_id");
+    }
+  }
+  if (last_map == request.map_id) 
+  {
+    last_map = "";
+  }
   return map_collection->removeMessages(mr::Query("uuid", request.map_id)) == 1;
 }
 
@@ -179,13 +196,35 @@ int main (int argc, char** argv)
   map_collection = new mr::MessageCollection<nav_msgs::OccupancyGrid>("map_store", "maps");
   map_collection->ensureIndex("uuid");
 
+  if (!nh.getParam("last_map_id", last_map))
+  {
+    last_map = "";
+  }
+
+
+  map_publisher = nh.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
+  if (last_map != "")
+  {
+    nav_msgs::OccupancyGridConstPtr map;
+    if (lookupMap(last_map, map))
+    {
+      try {
+	map_publisher.publish(map);
+      } catch(...) {
+	ROS_ERROR("Error publishing map");
+      }
+    }
+    else
+    {
+      ROS_ERROR("Invalid last_map_id");
+    }
+  }
+
   ros::ServiceServer list_maps_service = nh.advertiseService("list_maps", listMaps);
   ros::ServiceServer publish_map_service = nh.advertiseService("publish_map", publishMap);
   ros::ServiceServer delete_map_service = nh.advertiseService("delete_map", deleteMap);
   ros::ServiceServer rename_map_service = nh.advertiseService("rename_map", renameMap);
   ros::ServiceServer dynamic_map = nh.advertiseService("dynamic_map", dynamicMap);
-
-  map_publisher = nh.advertise<nav_msgs::OccupancyGrid>("/map", 1);
 
   ROS_DEBUG("spinning.");
 
