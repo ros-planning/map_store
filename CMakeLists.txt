@@ -34,3 +34,7 @@ rosbuild_add_executable(map_manager src/map_manager.cpp)
 target_link_libraries(map_manager uuid)
 
 rosbuild_add_rostest(test/map_store.test)
+
+rosbuild_make_distribution(0.1.0)
+
+
