@@ -11,6 +11,6 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/map_store</url>
   <depend package="roscpp"/>
-  <depend package="mongo_ros"/>
+  <depend package="warehouse_ros"/>
   <depend package="nav_msgs"/>
 </package>
