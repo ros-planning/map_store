@@ -202,7 +202,7 @@ int main (int argc, char** argv)
   }
 
 
-  map_publisher = nh.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
+  map_publisher = nh.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
   if (last_map != "")
   {
     nav_msgs::OccupancyGridConstPtr map;
