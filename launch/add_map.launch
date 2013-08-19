@@ -1,9 +1,8 @@
 <launch>
-  <arg name="map_resolution" />
   <arg name="map_file" />
   <arg name="map_name" />
 
-  <node name="mongo" type="wrapper.py" pkg="mongodb" output="log">
+  <node  pkg="warehouse_ros" type="mongo_wrapper_ros.py" name="mongo">
     <param name="database_path" value="warehouse_data"/>
     <param name="overwrite" value="false"/>
   </node>
@@ -15,7 +14,7 @@
      <remap from="map" to="map_store_map"/>
   </node> 
 
-  <node name="map_server" pkg="map_server" type="map_server" args="'$(arg map_file)' '$(arg map_resolution)'">
+  <node name="map_server" pkg="map_server" type="map_server" args="'$(arg map_file)'">
      <!-- Remaps to load the map file -->
      <remap from="/static_map" to="/dynamic_map" />
      <remap from="/map" to="/map_unused" />
@@ -23,4 +22,3 @@
 
   <node pkg="map_store" type="add_map.py" name="add_map" args="'$(arg map_name)'" required="true" />
 </launch>
-
